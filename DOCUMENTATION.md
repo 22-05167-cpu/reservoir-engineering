@@ -52,8 +52,16 @@ This is **what came OUT of the reservoir** minus **what came IN**.
 This is **how much space was created underground** — the "drive energy" that pushes oil out.
 
 - `(Bt - Bti)` — Oil shrinkage: oil takes up less space when pressure drops
-- `m × Bti × (Bg/Bgi - 1)` — Gas cap expansion: the gas cap grows as pressure drops
+- `m × Bti × (Bg/Bgi - 1)` — Gas cap expansion: the gas cap grows as pressure drops. m is a ratio: m = 0 means no gas cap, m = 1 means the gas cap is the same size as the oil zone.
 - `Bti × (1+m) × [(Swi×cw + cf)/(1-Swi)] × deltaP` — Rock and water expansion: the rocks and water squeeze a tiny bit
+
+**Why Bt works for both saturated and unsaturated reservoirs.** Bt is the "two-phase"
+formation volume factor: Bt = Bo + (Rsi − Rs) × Bg. When the reservoir is above the
+bubble point (unsaturated), no solution gas has evolved yet, so Rs = Rsi. The gas
+term (Rsi − Rs) × Bg becomes zero, and Bt simply equals Bo — the oil FVF. When the
+reservoir is below the bubble point (saturated), Rs < Rsi, gas comes out of solution,
+and Bt captures both the oil and the liberated gas in one variable. This single
+variable (Bt) is why the manual works for both cases.
 
 ### The Big Idea
 The equation balances **production** (top) with **expansion** (bottom). 

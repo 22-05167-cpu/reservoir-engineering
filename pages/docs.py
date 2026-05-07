@@ -400,6 +400,10 @@ with col_a:
 
 **Bt** — Current Two-Phase FVF (bbl/STB)
 : How much space 1 barrel of oil takes up now, at reservoir conditions.
+Bt = Bo + (Rsi − Rs) × Bg. If the reservoir is unsaturated, Rs = Rsi,
+so the gas part is zero and Bt = Bo. This single variable works for both
+saturated and unsaturated cases — the app uses Bt so you don't have to
+worry about which state your reservoir is in.
 
 **Bti** — Initial Two-Phase FVF (bbl/STB)
 : How much space 1 barrel of oil took up originally.
@@ -430,7 +434,8 @@ with col_b:
 
 **m** — Gas Cap Ratio (dimensionless)
 : How big the gas cap is, compared to the oil zone. m = 0.2 means the gas
-cap is 20% as large as the oil zone.
+cap is 20% as large as the oil zone. If you don't have a gas cap, m = 0.
+If the gas cap is the same size as the oil zone, m = 1.
 
 **Swi** — Initial Water Saturation (decimal)
 : What fraction of the rock pores were originally filled with water.
@@ -486,6 +491,15 @@ N = (Np × [Bt + (Rp − Rsi) × Bg] − (We − Wp × Bw))
 - `(Bt − Bti)` — oil itself expanded
 - `m × Bti × (Bg/Bgi − 1)` — gas cap expanded
 - `Bti × (1+m) × [...] × deltaP` — rock and water squeezed
+
+**Why Bt works for everything.** Bt is the "two-phase" formation volume
+factor: Bt = Bo + (Rsi − Rs) × Bg. When the reservoir is above the bubble
+point (unsaturated), no solution gas has evolved yet, so Rs = Rsi. The gas
+term (Rsi − Rs) × Bg becomes zero, and Bt simply equals Bo — the oil FVF.
+When the reservoir is below the bubble point (saturated), Rs < Rsi, gas
+comes out of solution, and Bt captures both the oil and the liberated gas
+in one variable. This is why the manual works for both saturated and
+unsaturated reservoirs — Bt handles the transition automatically.
 
 For gas reservoirs, the equation is simpler:
 
