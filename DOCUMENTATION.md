@@ -17,6 +17,7 @@ You give it some numbers (like how much oil you pumped out, what the pressure is
 - **We** — How much water has flowed into the reservoir from an aquifer
 - **m** — How big the gas cap is (as a ratio)
 - **deltaP** — How much the pressure dropped
+- **G** — How much gas was originally in the ground (Initial Gas-In-Place)
 
 ---
 
@@ -61,6 +62,21 @@ If a lot of water flows in (`We` is big), that water pushes oil out.
 If there's a big gas cap (`m` is big), the gas expands and pushes oil out. 
 If there's no gas cap and no water, the only thing pushing oil out is the oil itself shrinking and gas bubbling out of it.
 
+### Gas Reservoir MBE
+
+For gas reservoirs, the equation is much simpler:
+
+```
+G × (Bg - Bgi) = Gp × Bg - (We - Wp × Bw)
+```
+
+Gas expansion is the primary drive. A water-drive gas reservoir adds the
+aquifer term. There is no oil shrinkage, no gas cap, and no rock/fluid
+expansion term for gas.
+
+Switching between Oil and Gas is done via the **Fluid Type** selector in the
+sidebar. The interface, variable list, and equation all change automatically.
+
 ---
 
 ## 3. How to Run This Project
@@ -102,6 +118,9 @@ streamlit run app.py
 ```
 
 Your browser will open to `http://localhost:8501`.
+
+**Documentation:** The built-in user manual is at `http://localhost:8501/docs`
+— it includes guided tutorials with one-click example buttons.
 
 ---
 
@@ -188,6 +207,15 @@ We set it equal to **zero** because SymPy's solver likes equations in the form `
 
 **One equation. Four possible answers.** No copy-paste errors.
 
+For gas reservoirs, a separate implicit equation is used:
+
+```python
+GAS_MBE_IMPLICIT = G * (Bg - Bgi) - Gp * Bg + (We - Wp * Bw)
+```
+
+The `fluid_type` parameter (`'oil'` or `'gas'`) determines which equation and
+variable set is used. Both share the same validation and solving pipeline.
+
 #### Step 4: Substitute Known Values
 ```python
 substitutions = {}
@@ -204,6 +232,16 @@ substitutions.pop(target_symbol, None)
 ```
 
 We build a dictionary that says: "Replace every known variable with its number."
+
+**Validation:** The solver checks which variables are relevant for the current
+fluid type (`OIL_VARS` or `GAS_VARS`) and only requires those. Variables
+outside the active set are ignored.
+
+**Iterative substitution:** To prevent division-by-zero errors, the solver
+substitutes variables one at a time in order. Variables that "collapse" terms
+(like `m = 0` zeroing out the gas cap term) are processed before variables
+that could cause division by zero inside collapsed terms (like `Bgi = 0`
+inside `Bg/Bgi`).
 
 #### Step 5: Solve!
 ```python
@@ -265,15 +303,16 @@ Streamlit is a Python library that turns Python scripts into web apps. You write
 When you open the app, you see controls on the left:
 
 #### 1. Target Variable Dropdown
+"Fluid Type" — Choose between **Oil Reservoir** and **Gas Reservoir**.
+This changes the equation, variable list, and drive options.
+
 "What do you want to solve for?"
-- N (Initial Oil-In-Place)
-- We (Water Influx)
-- m (Gas Cap Size)
-- deltaP (Pressure Change)
+- Oil: N (Initial Oil-In-Place), We (Water Influx), m (Gas Cap Size), deltaP (Pressure Change)
+- Gas: G (Initial Gas-In-Place), We (Water Influx)
 
 **What it does:** Tells the solver which variable to calculate.
 
-#### 2. Reservoir State Radio Buttons
+#### 2. Reservoir State Radio Buttons (Oil only)
 - **Saturated** (p ≤ pb) — Gas is bubbling out of the oil normally
 - **Unsaturated** (p > pb) — Pressure is above bubble point, no free gas
 
@@ -283,8 +322,8 @@ When you open the app, you see controls on the left:
 
 #### 3. Drive Mechanism Checkboxes
 - **Water Drive Active?** — If OFF, sets `We = 0`, `Wp = 0`, and hides `Bw`
-- **Gas Cap Active?** — If OFF, sets `m = 0` and hides `Bgi`
-- **Rock & Water Expansion Active?** — If OFF, sets `cw = 0`, `cf = 0`, and hides `Swi` (also hides `deltaP` unless you're solving for it)
+- **Gas Cap Active?** (Oil only) — If OFF, sets `m = 0` and hides `Bgi`
+- **Rock & Water Expansion Active?** (Oil only) — If OFF, sets `cw = 0`, `cf = 0`, and hides `Swi` (also hides `deltaP` unless you're solving for it)
 
 **What it does:** These are "shortcuts." Instead of typing 0 for many variables, you just uncheck a box. The app also hides input fields for variables that become irrelevant when a drive is off — for example, if water drive is off, `Bw` (Water FVF) doesn't matter and disappears from the screen. This keeps the interface clean and beginner-friendly.
 
@@ -339,17 +378,16 @@ Tells you what percentage of the original oil you've produced so far.
 Shows how fast the solver ran.
 
 #### 4. Drive Mechanism Analysis
-A text explanation of what's pushing the oil out:
-- "Gas Cap Drive" if `m > 0`
-- "Water Drive" if `We` is large
-- "Solution Gas Drive" if `m = 0` and `We = 0`
-- "Combination Drive" if both gas cap and water are active
+A text explanation of what's pushing the oil (or gas) out:
+- For oil: "Solution Gas Drive", "Gas Cap Drive", "Water Drive", or "Combination Drive"
+- For gas: "Volumetric Depletion" (no water) or "Water Drive"
 
 #### 5. Expert Insights & Recommendations
 Practical tips based on your results. For example:
 - Warns you if Secondary Gas Saturation is developing (you're losing pressure energy)
 - Alerts you if Rock & Fluid Expansion is the only energy source (least efficient drive)
 - Suggests trend analysis to verify your drive mechanism assumptions
+- (Oil only — not shown for gas reservoirs)
 
 #### 6. Drive Indices Pie Chart
 A Plotly donut chart showing the percentage contribution of each mechanism:
@@ -500,8 +538,10 @@ Calculation failed: No valid solution found
 
 ## 10. Tips for Using the App
 
-### Tip 1: Use File Upload for Real Data
-Manual entry is good for quick checks, but file upload is faster for large datasets. Make sure your CSV columns match the variable names (e.g., `Np`, `Bt`, `We`).
+### Tip 1: Use the Built-in Tutorials
+Open `http://localhost:8501/docs` for the user manual. Each tutorial has a
+**▶️ Load in Calculator** button that opens the main app with all inputs
+pre-filled and runs the calculation automatically. No typing required.
 
 ### Tip 2: Check the Drive Chart
 The pie chart tells you which mechanism is doing most of the work. If you expected "Water Drive" but see "Solution Gas Drive," your inputs might be wrong.
@@ -515,8 +555,14 @@ Upload `test_data_v2.csv` and make sure you get N = 36.59 MMSTB. If you don't, s
 - Turn ON "Rock & Water Expansion Active"
 - The app will automatically set `m = 0` and `Rp = Rsi`
 
-### Tip 5: Understanding Units
+### Tip 5: For Gas Reservoirs
+- Switch fluid type to "Gas Reservoir" in the sidebar
+- The interface changes completely — fewer variables, different targets
+- Water drive is the only optional drive mechanism for gas
+
+### Tip 6: Understanding Units
 - **STB** = Stock Tank Barrels (oil at surface conditions)
+- **Mscf** = Thousand Standard Cubic Feet (gas at surface)
 - **bbl** = Barrels (volume at reservoir conditions)
 - **scf/STB** = Standard Cubic Feet per Stock Tank Barrel (gas per oil)
 - **psi** = Pounds per Square Inch (pressure)
@@ -558,6 +604,15 @@ A: You must provide all inputs EXCEPT the target variable. If a variable is unkn
 **Q: Can I use Excel files?**
 A: Yes! Upload `.xlsx` or `.xls` files. The app uses Pandas to read them.
 
+**Q: How do I switch between oil and gas reservoirs?**
+A: Use the "Fluid Type" radio button in the sidebar. The interface, variable list, and MBE equation all change automatically.
+
+**Q: What units does the gas MBE use?**
+A: Gas volumes (G, Gp) are in Mscf (thousand standard cubic feet). The answer is displayed in both Mscf and Bscf/MMscf when large.
+
+**Q: Can I share a specific calculation with someone?**
+A: Yes! The URL updates with query parameters when you use the tutorial buttons. Copy the URL from your browser after calculating — it contains all inputs and can be shared.
+
 **Q: Is this tool accurate enough for real reservoirs?**
 A: This is an educational tool. Real reservoir engineering uses more complex models, but the MBE is the foundation.
 
@@ -567,13 +622,19 @@ A: This is an educational tool. Real reservoir engineering uses more complex mod
 
 | Component | File | What It Does |
 |-----------|------|-------------|
-| Math Engine | `mbe_solver.py` | Defines the MBE, solves for any variable using SymPy |
-| Web App | `app.py` | Streamlit UI with inputs, charts, timer, and export |
+| Math Engine | `mbe_solver.py` | Defines the MBE (oil + gas), solves for any variable using SymPy |
+| Shared Config | `config.py` | Variable definitions, SymPy symbols, oil/gas variable lists |
+| Web App | `app.py` | Streamlit UI with inputs, charts, timer, export, URL query param hydration |
+| Sidebar | `ui/sidebar.py` | Fluid type selector, target variable, drive mechanism toggles |
+| Data Input | `ui/data_input.py` | Manual input fields and CSV/Excel file upload |
+| Results | `ui/results.py` | Answer display, drive analysis, pie chart, summary table, CSV export |
+| Time Series | `ui/time_series.py` | Pressure vs Np and Havlena-Odeh F vs Et charts |
+| User Manual | `pages/docs.py` | Built-in documentation with guided tutorials |
 | Tests | `test_cases.py` | 5 pytest tests verifying correctness |
 | Dependencies | `requirements.txt` | Lists all Python packages needed |
 | Sample Data | `test_data_v2.csv` | Ready-to-upload test case |
 
-**The big idea:** Define the equation once with SymPy, let the computer rearrange it for you, and wrap it in a friendly web interface.
+**The big idea:** Define the equation once with SymPy, let the computer rearrange it for you, and wrap it in a friendly web interface — now supporting both oil and gas reservoirs.
 
 ---
 
