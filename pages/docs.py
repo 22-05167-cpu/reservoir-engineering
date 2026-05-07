@@ -335,7 +335,7 @@ For example: **N = 36,593,625.50 STB | 36.59 MMSTB**.
 
 ### Recovery Factor (Oil only)
 If you solved for N (or provided it), the app shows what percentage of the
-original oil you've produced: **Rf = (Np / N) × 100%**.
+original oil you've produced: $R_f = (N_p / N) \times 100\%$.
 
 ### Drive Mechanism Analysis
 A plain-language description of what's pushing the oil (or gas) out:
@@ -400,8 +400,8 @@ with col_a:
 
 **Bt** — Current Two-Phase FVF (bbl/STB)
 : How much space 1 barrel of oil takes up now, at reservoir conditions.
-Bt = Bo + (Rsi − Rs) × Bg. If the reservoir is unsaturated, Rs = Rsi,
-so the gas part is zero and Bt = Bo. This single variable works for both
+$B_t = B_o + (R_{si} - R_s) B_g$. If the reservoir is unsaturated, $R_s = R_{si}$,
+so the gas part is zero and $B_t = B_o$. This single variable works for both
 saturated and unsaturated cases — the app uses Bt so you don't have to
 worry about which state your reservoir is in.
 
@@ -476,36 +476,44 @@ what expands or flows in to fill the empty space.
 
 For oil reservoirs, the full equation is:
 
-```
-N = (Np × [Bt + (Rp − Rsi) × Bg] − (We − Wp × Bw))
-    ─────────────────────────────────────────────────
-    (Bt − Bti) + m × Bti × [Bg/Bgi − 1] + Bti × (1+m) × [(Swi×cw+cf)/(1−Swi)] × deltaP
-```
+""")
+st.latex(r"""
+N = \frac{
+    N_p \bigl[ B_t + (R_p - R_{si}) B_g \bigr] - (W_e - W_p B_w)
+}{
+    (B_t - B_{ti})
+    + m B_{ti} \left( \frac{B_g}{B_{gi}} - 1 \right)
+    + B_{ti} (1 + m) \left( \frac{S_{wi} c_w + c_f}{1 - S_{wi}} \right) \Delta P
+}
+""")
+st.markdown("""
 
 **Top (numerator):** Everything that came out of the reservoir minus what came in.
-- `Np × Bt` — produced oil, converted to reservoir volume
-- `Np × (Rp − Rsi) × Bg` — extra gas that bubbled out as pressure dropped
-- `We − Wp × Bw` — net water (aquifer inflow minus produced water)
+- $N_p B_t$ — produced oil, converted to reservoir volume
+- $N_p (R_p - R_{si}) B_g$ — extra gas that bubbled out as pressure dropped
+- $W_e - W_p B_w$ — net water (aquifer inflow minus produced water)
 
 **Bottom (denominator):** How much space was created underground by expansion.
-- `(Bt − Bti)` — oil itself expanded
-- `m × Bti × (Bg/Bgi − 1)` — gas cap expanded
-- `Bti × (1+m) × [...] × deltaP` — rock and water squeezed
+- $(B_t - B_{ti})$ — oil itself expanded
+- $m B_{ti} (B_g / B_{gi} - 1)$ — gas cap expanded
+- $B_{ti} (1 + m) \frac{S_{wi} c_w + c_f}{1 - S_{wi}} \Delta P$ — rock and water squeezed
 
-**Why Bt works for everything.** Bt is the "two-phase" formation volume
-factor: Bt = Bo + (Rsi − Rs) × Bg. When the reservoir is above the bubble
-point (unsaturated), no solution gas has evolved yet, so Rs = Rsi. The gas
-term (Rsi − Rs) × Bg becomes zero, and Bt simply equals Bo — the oil FVF.
-When the reservoir is below the bubble point (saturated), Rs < Rsi, gas
-comes out of solution, and Bt captures both the oil and the liberated gas
+**Why $B_t$ works for everything.** $B_t$ is the "two-phase" formation volume
+factor: $B_t = B_o + (R_{si} - R_s) B_g$. When the reservoir is above the bubble
+point (unsaturated), no solution gas has evolved yet, so $R_s = R_{si}$. The gas
+term $(R_{si} - R_s) B_g$ becomes zero, and $B_t$ simply equals $B_o$ — the oil FVF.
+When the reservoir is below the bubble point (saturated), $R_s < R_{si}$, gas
+comes out of solution, and $B_t$ captures both the oil and the liberated gas
 in one variable. This is why the manual works for both saturated and
-unsaturated reservoirs — Bt handles the transition automatically.
+unsaturated reservoirs — $B_t$ handles the transition automatically.
 
 For gas reservoirs, the equation is simpler:
 
-```
-G × (Bg − Bgi) = Gp × Bg − (We − Wp × Bw)
-```
+""")
+st.latex(r"""
+G (B_g - B_{gi}) = G_p B_g - (W_e - W_p B_w)
+""")
+st.markdown("""
 
 You don't need to memorize these. The app handles the math. The important
 thing is understanding which terms correspond to which drive mechanisms,
@@ -517,15 +525,15 @@ st.subheader("The Havlena-Odeh Method")
 st.markdown("""
 The Havlena-Odeh method rearranges the MBE into a straight-line form:
 
-**F = N × Et**
+$F = N \times E_t$
 
 Where:
-- **F** = everything produced (oil, gas, water)
-- **Et** = everything that expanded (oil, gas cap, rock, water)
+- $F$ = everything produced (oil, gas, water)
+- $E_t$ = everything that expanded (oil, gas cap, rock, water)
 
 When you upload a CSV with multiple rows (one per time step), the app plots
-F vs Et. A straight line through the origin confirms your drive mechanism
-assumptions are correct. The slope of the line is **N**.
+$F$ vs $E_t$. A straight line through the origin confirms your drive mechanism
+assumptions are correct. The slope of the line is $N$.
 
 - **Straight line** — your m and We assumptions are correct
 - **Curves upward** — you're missing an energy source (try a larger m or We)
