@@ -30,13 +30,15 @@ def render_sidebar() -> dict:
 
     forced_zeros = []
     if is_unsaturated:
-        forced_zeros.append('m')
+        forced_zeros.extend(['m', 'Bg', 'Bgi', 'Rsi'])
     if not water_drive_active:
-        forced_zeros.extend(['We', 'Wp'])
+        forced_zeros.extend(['We', 'Wp', 'Bw'])
     if not gas_cap_active:
-        forced_zeros.append('m')
+        forced_zeros.extend(['m', 'Bgi'])
     if not expansion_active:
-        forced_zeros.extend(['cw', 'cf'])
+        forced_zeros.extend(['cw', 'cf', 'Swi'])
+        if target_var != 'deltaP':
+            forced_zeros.append('deltaP')
     forced_zeros = list(set(forced_zeros))
 
     return {
