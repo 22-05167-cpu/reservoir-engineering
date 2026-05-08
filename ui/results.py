@@ -94,10 +94,10 @@ def render_results(
         m_val = all_vals.get('m') or 0
         we_val = all_vals.get('We') or 0
         np_val = all_vals.get('Np') or 0
-        bt_val = all_vals.get('Bt') or 0
+        bo_val = all_vals.get('Bo') or 0
 
         water_is_significant = abs(we_val) > 1e6 or (
-            np_val * bt_val > 0 and abs(we_val) > 0.1 * np_val * bt_val
+            np_val * bo_val > 0 and abs(we_val) > 0.1 * np_val * bo_val
         )
 
         if m_val == 0 and we_val == 0:

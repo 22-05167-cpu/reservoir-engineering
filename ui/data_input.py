@@ -23,7 +23,7 @@ def render_manual_input(var_info: dict, target_var: str, forced_zeros: list, is_
             continue
         if var in forced_zeros:
             continue
-        if fluid_type != 'gas' and is_unsaturated and var == 'Rp':
+        if fluid_type != 'gas' and is_unsaturated and var in ('Rp', 'Rs'):
             continue
 
         info = var_info[var]
@@ -42,8 +42,10 @@ def render_manual_input(var_info: dict, target_var: str, forced_zeros: list, is_
     if fluid_type != 'gas' and is_unsaturated:
         if 'Rsi' in known_values:
             known_values['Rp'] = known_values['Rsi']
+            known_values['Rs'] = known_values['Rsi']
         else:
             known_values['Rp'] = 0.0
+            known_values['Rs'] = 0.0
 
     return {'known_values': known_values}
 
@@ -109,7 +111,9 @@ def render_file_upload(var_info: dict, target_var: str, forced_zeros: list, is_u
     if fluid_type != 'gas' and is_unsaturated:
         if 'Rsi' in known_values:
             known_values['Rp'] = known_values['Rsi']
+            known_values['Rs'] = known_values['Rsi']
         elif 'Rp' in known_values and 'Rsi' not in known_values:
             known_values['Rsi'] = known_values['Rp']
+            known_values['Rs'] = known_values['Rp']
 
     return {'known_values': known_values, 'df': df, 'col_map': col_map}

@@ -40,9 +40,9 @@ def render_time_series(df, col_map: dict) -> None:
         )
         st.plotly_chart(fig_a, use_container_width=True)
 
-    required = ['Np', 'Bt', 'Rp', 'Rsi', 'Bg', 'Wp', 'Bw', 'Bti', 'm', 'Bgi', 'Swi', 'cw', 'cf', 'deltaP']
+    required = ['Np', 'Bo', 'Rp', 'Rsi', 'Rs', 'Bg', 'Wp', 'Bw', 'Boi', 'm', 'Bgi', 'Swi', 'cw', 'cf', 'deltaP']
     if not all(c in col_map for c in required):
-        st.info("Havlena-Odeh plot requires: Np, Bt, Rp, Rsi, Bg, Wp, Bw, Bti, m, Bgi, Swi, cw, cf, deltaP columns.")
+        st.info("Havlena-Odeh plot requires: Np, Bo, Rp, Rsi, Rs, Bg, Wp, Bw, Boi, m, Bgi, Swi, cw, cf, deltaP columns.")
         return
 
     F_vals = []

@@ -12,7 +12,7 @@ iterative numerical fallback (via sympy.nsolve) for non-linear cases.
 
 import sympy as sp
 import numpy as np
-from config import SYMBOLS, N, Np, Bt, Bti, Rp, Rsi, Bg, Bgi, We, Wp, Bw, m, Swi, cw, cf, deltaP, G, Gp
+from config import SYMBOLS, N, Np, Bo, Boi, Rp, Rsi, Rs, Bg, Bgi, We, Wp, Bw, m, Swi, cw, cf, deltaP, G, Gp
 from config import OIL_VARS, GAS_VARS
 
 # =============================================================================
@@ -20,19 +20,19 @@ from config import OIL_VARS, GAS_VARS
 # =============================================================================
 # The General MBE (as written in the project specification):
 #
-#   N = (Np * [Bt + (Rp - Rsi) * Bg] - (We - Wp * Bw))
+#   N = (Np * [Bo + (Rp - Rs) * Bg] - (We - Wp * Bw))
 #       -------------------------------------------------
-#       (Bt - Bti) + m * Bti * [Bg/Bgi - 1]
-#                    + Bti * (1 + m) * [(Swi*cw + cf)/(1 - Swi)] * deltaP
+#       (Bo - Boi) + (Rsi - Rs) * Bg + m * Boi * [Bg/Bgi - 1]
+#                    + Boi * (1 + m) * [(Swi*cw + cf)/(1 - Swi)] * deltaP
 #
 # We decompose it into three parts:
 #   - numerator        : net production (oil + evolved gas) minus net water influx
 #   - base_denominator : oil shrinkage + gas-cap expansion
 #   - expansion_term   : rock and connate-water expansion (depends on deltaP)
 
-numerator = Np * (Bt + (Rp - Rsi) * Bg) - (We - Wp * Bw)
-base_denominator = (Bt - Bti) + m * Bti * (Bg / Bgi - 1)
-expansion_term = Bti * (1 + m) * ((Swi * cw + cf) / (1 - Swi)) * deltaP
+numerator = Np * (Bo + (Rp - Rs) * Bg) - (We - Wp * Bw)
+base_denominator = (Bo - Boi) + (Rsi - Rs) * Bg + m * Boi * (Bg / Bgi - 1)
+expansion_term = Boi * (1 + m) * ((Swi * cw + cf) / (1 - Swi)) * deltaP
 denominator = base_denominator + expansion_term
 
 # ------------------------------------------------------------------------------
@@ -338,9 +338,9 @@ def compute_drive_indices(all_values: dict, fluid_type: str = 'oil') -> dict:
     For oil reservoirs, the MBE denominator contains three distinct physical
     mechanisms that provide the energy pushing oil out of the reservoir:
 
-      1. Oil shrinkage / solution-gas drive :  (Bt - Bti)
-      2. Gas-cap expansion                  :  m * Bti * (Bg/Bgi - 1)
-      3. Rock & connate-water expansion     :  Bti*(1+m)*[(Swi*cw+cf)/(1-Swi)]*deltaP
+     1. Oil shrinkage / solution-gas drive :  (Bo - Boi) + (Rsi - Rs) * Bg
+     2. Gas-cap expansion                  :  m * Boi * (Bg/Bgi - 1)
+     3. Rock & connate-water expansion     :  Boi*(1+m)*[(Swi*cw+cf)/(1-Swi)]*deltaP
 
     In addition, the net water influx (We - Wp*Bw) appears in the numerator
     and represents energy supplied from an aquifer.
@@ -392,8 +392,9 @@ def compute_drive_indices(all_values: dict, fluid_type: str = 'oil') -> dict:
         # Extract numeric values; default to 0 if a key is missing.
         N_val = all_values.get('N', 0)
         m_val = all_values.get('m', 0)
-        Bt_val = all_values.get('Bt', 0)
-        Bti_val = all_values.get('Bti', 0)
+        Bo_val = all_values.get('Bo', 0)
+        Boi_val = all_values.get('Boi', 0)
+        Rs_val = all_values.get('Rs', 0)
         Bg_val = all_values.get('Bg', 0)
         Bgi_val = all_values.get('Bgi', 0)
         Swi_val = all_values.get('Swi', 0)
@@ -414,13 +415,13 @@ def compute_drive_indices(all_values: dict, fluid_type: str = 'oil') -> dict:
         # This gives the actual volume of fluid displaced by each mechanism.
 
         # 1. Oil shrinkage / solution-gas expansion energy [bbl]
-        oil_term = abs(N_val * (Bt_val - Bti_val))
+        oil_term = abs(N_val * ((Bo_val - Boi_val) + (all_values.get('Rsi', 0) - Rs_val) * Bg_val))
 
         # 2. Gas-cap expansion energy [bbl]
         if abs(Bgi_val) < 1e-12:
             gas_cap_term = 0.0
         else:
-            gas_cap_term = abs(N_val * m_val * Bti_val * (Bg_val / Bgi_val - 1))
+            gas_cap_term = abs(N_val * m_val * Boi_val * (Bg_val / Bgi_val - 1))
 
         # 3. Rock & connate-water expansion energy [bbl]
         #    Guard against division by zero when Swi == 1.
@@ -428,7 +429,7 @@ def compute_drive_indices(all_values: dict, fluid_type: str = 'oil') -> dict:
             rock_water_term = 0.0
         else:
             rock_water_term = abs(
-                N_val * Bti_val * (1 + m_val)
+                N_val * Boi_val * (1 + m_val)
                 * ((Swi_val * cw_val + cf_val) / (1 - Swi_val))
                 * deltaP_val
             )
@@ -471,12 +472,13 @@ if __name__ == "__main__":
         'Np': 5e6,
         'Rp': 1100,
         'Rsi': 600,
-        'Bt': 1.48,
+        'Rs': 500,
+        'Bo': 1.33,
         'Bg': 0.0015,
         'We': 3e6,
         'Wp': 2e5,
         'Bw': 1.0,
-        'Bti': 1.35,
+        'Boi': 1.35,
         'm': 0.2,
         'Bgi': 0.0011,
         'deltaP': 500

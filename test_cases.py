@@ -14,12 +14,13 @@ def test_case_1_base_saturated_solve_N():
         "Np": 5e6,
         "Rp": 1100,
         "Rsi": 600,
-        "Bt": 1.48,
+        "Rs": 500,
+        "Bo": 1.33,
         "Bg": 0.0015,
         "We": 3e6,
         "Wp": 2e5,
         "Bw": 1.0,
-        "Bti": 1.35,
+        "Boi": 1.35,
         "m": 0.2,
         "Bgi": 0.0011,
         "deltaP": 500,
@@ -42,9 +43,10 @@ def test_case_2_solution_gas_drive_only():
         "Np": 5e6,
         "Rp": 1100,
         "Rsi": 600,
-        "Bt": 1.48,
+        "Rs": 500,
+        "Bo": 1.33,
         "Bg": 0.0015,
-        "Bti": 1.35,
+        "Boi": 1.35,
         "Bw": 1.0,
         "Bgi": 0.0011,
         "deltaP": 500,
@@ -54,8 +56,8 @@ def test_case_2_solution_gas_drive_only():
 
     result = solve_mbe(target_var="N", known_values=known, forced_zeros=forced)
 
-    # Numerator: 5e6 * [1.48 + 500*0.0015] - 0 = 11,150,000
-    # Denominator: (1.48 - 1.35) = 0.13
+    # Numerator: 5e6 * [1.33 + (1100-500)*0.0015] = 11,150,000
+    # Denominator: (1.33 - 1.35) + (600-500)*0.0015 = 0.13
     # N = 11,150,000 / 0.13 = 85,769,230.77
     assert result["success"] is True
     assert result["result"] == pytest.approx(85_769_230.77, rel=1e-4)
@@ -72,11 +74,12 @@ def test_case_3_solve_for_water_influx():
         "Np": 5e6,
         "Rp": 1100,
         "Rsi": 600,
-        "Bt": 1.48,
+        "Rs": 500,
+        "Bo": 1.33,
         "Bg": 0.0015,
         "Wp": 2e5,
         "Bw": 1.0,
-        "Bti": 1.35,
+        "Boi": 1.35,
         "m": 0.2,
         "Bgi": 0.0011,
         "deltaP": 500,
@@ -100,12 +103,13 @@ def test_case_4_solve_for_gas_cap_size():
         "Np": 5e6,
         "Rp": 1100,
         "Rsi": 600,
-        "Bt": 1.48,
+        "Rs": 500,
+        "Bo": 1.33,
         "Bg": 0.0015,
         "We": 3e6,
         "Wp": 2e5,
         "Bw": 1.0,
-        "Bti": 1.35,
+        "Boi": 1.35,
         "Bgi": 0.0011,
         "deltaP": 500,
     }
@@ -125,9 +129,10 @@ def test_case_5_unsaturated_reservoir_logic():
     """
     known = {
         "Np": 1e6,
-        "Bt": 1.26,
-        "Bti": 1.25,
+        "Bo": 1.26,
+        "Boi": 1.25,
         "Rsi": 400,
+        "Rs": 400,
         "Rp": 400,  # Rp forced to equal Rsi
         "deltaP": 1000,
         "Swi": 0.25,

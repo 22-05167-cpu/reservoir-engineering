@@ -151,8 +151,8 @@ barrels and want to know how many were originally there.
 
 **What you'll type:**
 - Np = 1,000
-- Bt = 1.2511
-- Bti = 1.2417
+- Bo = 1.2511
+- Boi = 1.2417
 - Swi = 0.20
 - cw = 0.000003
 - cf = 0.0000086
@@ -171,8 +171,10 @@ _example_button("▶️ Load Tutorial 1 in Calculator", {
     'gas_cap_active': 'false',
     'expansion_active': 'true',
     'Np': '1000',
-    'Bt': '1.2511',
-    'Bti': '1.2417',
+    'Bo': '1.2511',
+    'Boi': '1.2417',
+    'Rs': '0',
+    'Rsi': '0',
     'Swi': '0.20',
     'cw': '0.000003',
     'cf': '0.0000086',
@@ -199,8 +201,8 @@ three drive mechanisms are active.
 **What you'll type:**
 - N = 10,000,000
 - Np = 1,000,000
-- Bt = 1.655, Bti = 1.58
-- Rsi = 1,040, Rp = 1,100
+- Bo = 1.4800, Boi = 1.58
+- Rsi = 1,040, Rs = 850, Rp = 1,100
 - Bg = 0.00092, Bgi = 0.00080
 - Wp = 50,000, Bw = 1.0, m = 0.25
 - Swi = 0.20, cw = 1.5×10⁻⁶, cf = 1.0×10⁻⁶
@@ -219,9 +221,10 @@ _example_button("▶️ Load Tutorial 2 in Calculator", {
     'expansion_active': 'true',
     'N': '10000000',
     'Np': '1000000',
-    'Bt': '1.655',
-    'Bti': '1.58',
+    'Bo': '1.4800',
+    'Boi': '1.58',
     'Rsi': '1040',
+    'Rs': '850',
     'Rp': '1100',
     'Bg': '0.00092',
     'Bgi': '0.00080',
@@ -253,8 +256,8 @@ off to simplify.
 
 **What you'll type:**
 - Np = 5,000,000
-- Bt = 1.48, Bti = 1.35
-- Rsi = 600, Rp = 1,100
+- Bo = 1.33, Boi = 1.35
+- Rsi = 600, Rs = 500, Rp = 1,100
 - Bg = 0.0015, Bgi = 0.0011
 - We = 3,000,000, Wp = 200,000, Bw = 1.0
 - m = 0.2
@@ -272,9 +275,10 @@ _example_button("▶️ Load Tutorial 3 in Calculator", {
     'gas_cap_active': 'true',
     'expansion_active': 'false',
     'Np': '5000000',
-    'Bt': '1.48',
-    'Bti': '1.35',
+    'Bo': '1.33',
+    'Boi': '1.35',
     'Rsi': '600',
+    'Rs': '500',
     'Rp': '1100',
     'Bg': '0.0015',
     'Bgi': '0.0011',
@@ -398,15 +402,17 @@ with col_a:
 **Gp** — Cumulative Gas Produced (Mscf)
 : How much gas you've produced so far.
 
-**Bt** — Current Two-Phase FVF (bbl/STB)
+**Bo** — Current Oil FVF (bbl/STB)
 : How much space 1 barrel of oil takes up now, at reservoir conditions.
-$B_t = B_o + (R_{si} - R_s) B_g$. If the reservoir is unsaturated, $R_s = R_{si}$,
-so the gas part is zero and $B_t = B_o$. This single variable works for both
-saturated and unsaturated cases — the app uses Bt so you don't have to
-worry about which state your reservoir is in.
+This is the formation volume factor for oil at current pressure.
 
-**Bti** — Initial Two-Phase FVF (bbl/STB)
-: How much space 1 barrel of oil took up originally.
+**Boi** — Initial Oil FVF (bbl/STB)
+: How much space 1 barrel of oil took up originally, at initial pressure.
+
+**Rs** — Current Solution GOR (scf/STB)
+: How much gas is dissolved in each barrel of oil at current pressure.
+If the reservoir is unsaturated, $R_s = R_{si}$. Under saturated conditions,
+$R_s < R_{si}$ as gas comes out of solution.
 
 **Rp** — Cumulative Produced GOR (scf/STB)
 : How much gas came out with each barrel of oil, on average.
@@ -479,33 +485,32 @@ For oil reservoirs, the full equation is:
 """)
 st.latex(r"""
 N = \frac{
-    N_p \bigl[ B_t + (R_p - R_{si}) B_g \bigr] - (W_e - W_p B_w)
+    N_p \bigl[ B_o + (R_p - R_s) B_g \bigr] - (W_e - W_p B_w)
 }{
-    (B_t - B_{ti})
-    + m B_{ti} \left( \frac{B_g}{B_{gi}} - 1 \right)
-    + B_{ti} (1 + m) \left( \frac{S_{wi} c_w + c_f}{1 - S_{wi}} \right) \Delta P
+    (B_o - B_{oi})
+    + (R_{si} - R_s) B_g
+    + m B_{oi} \left( \frac{B_g}{B_{gi}} - 1 \right)
+    + B_{oi} (1 + m) \left( \frac{S_{wi} c_w + c_f}{1 - S_{wi}} \right) \Delta P
 }
 """)
 st.markdown(r"""
 
 **Top (numerator):** Everything that came out of the reservoir minus what came in.
-- $N_p B_t$ — produced oil, converted to reservoir volume
-- $N_p (R_p - R_{si}) B_g$ — extra gas that bubbled out as pressure dropped
+- $N_p B_o$ — produced oil, converted to reservoir volume
+- $N_p (R_p - R_s) B_g$ — extra gas that bubbled out as pressure dropped below the bubble point
 - $W_e - W_p B_w$ — net water (aquifer inflow minus produced water)
 
 **Bottom (denominator):** How much space was created underground by expansion.
-- $(B_t - B_{ti})$ — oil itself expanded
-- $m B_{ti} (B_g / B_{gi} - 1)$ — gas cap expanded
-- $B_{ti} (1 + m) \frac{S_{wi} c_w + c_f}{1 - S_{wi}} \Delta P$ — rock and water squeezed
+- $(B_o - B_{oi})$ — oil itself expanded due to pressure change
+- $(R_{si} - R_s) B_g$ — solution gas evolved from the oil as pressure dropped
+- $m B_{oi} (B_g / B_{gi} - 1)$ — gas cap expanded
+- $B_{oi} (1 + m) \frac{S_{wi} c_w + c_f}{1 - S_{wi}} \Delta P$ — rock and water squeezed
 
-**Why $B_t$ works for everything.** $B_t$ is the "two-phase" formation volume
-factor: $B_t = B_o + (R_{si} - R_s) B_g$. When the reservoir is above the bubble
-point (unsaturated), no solution gas has evolved yet, so $R_s = R_{si}$. The gas
-term $(R_{si} - R_s) B_g$ becomes zero, and $B_t$ simply equals $B_o$ — the oil FVF.
-When the reservoir is below the bubble point (saturated), $R_s < R_{si}$, gas
-comes out of solution, and $B_t$ captures both the oil and the liberated gas
-in one variable. This is why the manual works for both saturated and
-unsaturated reservoirs — $B_t$ handles the transition automatically.
+**Relationship to the two-phase FVF.** The old "two-phase" formation volume factor
+$B_t = B_o + (R_{si} - R_s) B_g$ combined oil shrinkage and solution gas evolution
+into a single variable. The expanded form separates these into $B_o$ (oil behavior)
+and $R_s$ (gas solubility), which is the textbook-strict presentation and matches
+exactly how the professor writes the equation by hand.
 
 For gas reservoirs, the equation is simpler:
 

@@ -8,8 +8,8 @@ def compute_havlena_odeh_f_et(row_values: dict) -> dict:
     Parameters
     ----------
     row_values : dict
-        Dictionary with keys: 'Np', 'Bt', 'Rp', 'Rsi', 'Bg', 'Wp', 'Bw',
-        'Bti', 'm', 'Bgi', 'Swi', 'cw', 'cf', 'deltaP'.
+        Dictionary with keys: 'Np', 'Bo', 'Rp', 'Rsi', 'Rs', 'Bg', 'Wp', 'Bw',
+        'Boi', 'm', 'Bgi', 'Swi', 'cw', 'cf', 'deltaP'.
 
     Returns
     -------
@@ -17,13 +17,14 @@ def compute_havlena_odeh_f_et(row_values: dict) -> dict:
         {'F': float, 'Et': float}
     """
     Np = row_values.get("Np", 0.0)
-    Bt = row_values.get("Bt", 0.0)
+    Bo = row_values.get("Bo", 0.0)
     Rp = row_values.get("Rp", 0.0)
     Rsi = row_values.get("Rsi", 0.0)
+    Rs = row_values.get("Rs", 0.0)
     Bg = row_values.get("Bg", 0.0)
     Wp = row_values.get("Wp", 0.0)
     Bw = row_values.get("Bw", 0.0)
-    Bti = row_values.get("Bti", 0.0)
+    Boi = row_values.get("Boi", 0.0)
     m = row_values.get("m", 0.0)
     Bgi = row_values.get("Bgi", 0.0)
     Swi = row_values.get("Swi", 0.0)
@@ -31,12 +32,12 @@ def compute_havlena_odeh_f_et(row_values: dict) -> dict:
     cf = row_values.get("cf", 0.0)
     deltaP = row_values.get("deltaP", 0.0)
 
-    F = Np * (Bt + (Rp - Rsi) * Bg) + Wp * Bw
+    F = Np * (Bo + (Rp - Rs) * Bg) + Wp * Bw
 
-    oil_shrinkage = Bt - Bti
+    oil_shrinkage = (Bo - Boi) + (Rsi - Rs) * Bg
 
     if abs(Bgi) > 0:
-        gas_cap = m * Bti * (Bg / Bgi - 1.0)
+        gas_cap = m * Boi * (Bg / Bgi - 1.0)
     else:
         gas_cap = 0.0
 
@@ -44,7 +45,7 @@ def compute_havlena_odeh_f_et(row_values: dict) -> dict:
         expansion = 0.0
     else:
         expansion = (
-            Bti
+            Boi
             * (1.0 + m)
             * ((Swi * cw + cf) / (1.0 - Swi))
             * deltaP

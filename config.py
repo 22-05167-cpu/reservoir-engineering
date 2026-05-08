@@ -10,10 +10,11 @@ import sympy as sp
 var_info = {
     'N':     {'label': 'N – Initial Oil-In-Place (STB)',                'default': 0.0,    'format': '%.2f'},
     'Np':    {'label': 'Np – Cumulative Oil Produced (STB)',            'default': 0.0,    'format': '%.2f'},
-    'Bt':    {'label': 'Bt – Current Two-Phase FVF (bbl/STB)',          'default': 1.0,    'format': '%.4f'},
-    'Bti':   {'label': 'Bti – Initial Two-Phase FVF (bbl/STB)',         'default': 1.0,    'format': '%.4f'},
+    'Bo':    {'label': 'Bo – Current Oil FVF (bbl/STB)',                'default': 1.0,    'format': '%.4f'},
+    'Boi':   {'label': 'Boi – Initial Oil FVF (bbl/STB)',               'default': 1.0,    'format': '%.4f'},
     'Rp':    {'label': 'Rp – Cumulative Produced GOR (scf/STB)',        'default': 0.0,    'format': '%.2f'},
     'Rsi':   {'label': 'Rsi – Initial Solution GOR (scf/STB)',          'default': 0.0,    'format': '%.2f'},
+    'Rs':    {'label': 'Rs – Current Solution GOR (scf/STB)',           'default': 0.0,    'format': '%.2f'},
     'Bg':    {'label': 'Bg – Current Gas FVF (bbl/scf)',                'default': 0.001,  'format': '%.6f'},
     'Bgi':   {'label': 'Bgi – Initial Gas FVF (bbl/scf)',               'default': 0.001,  'format': '%.6f'},
     'We':    {'label': 'We – Cumulative Water Influx (bbl)',            'default': 0.0,    'format': '%.2f'},
@@ -30,16 +31,16 @@ var_info = {
 
 all_vars = list(var_info.keys())
 
-OIL_VARS = ['N', 'Np', 'Bt', 'Bti', 'Rp', 'Rsi', 'Bg', 'Bgi',
+OIL_VARS = ['N', 'Np', 'Bo', 'Boi', 'Rp', 'Rsi', 'Rs', 'Bg', 'Bgi',
             'We', 'Wp', 'Bw', 'm', 'Swi', 'cw', 'cf', 'deltaP']
 GAS_VARS = ['G', 'Gp', 'Bg', 'Bgi', 'We', 'Wp', 'Bw']
 
-N, Np, Bt, Bti, Rp, Rsi, Bg, Bgi, We, Wp, Bw, m, Swi, cw, cf, deltaP, G, Gp = sp.symbols(
-    'N Np Bt Bti Rp Rsi Bg Bgi We Wp Bw m Swi cw cf deltaP G Gp'
+N, Np, Bo, Boi, Rp, Rsi, Rs, Bg, Bgi, We, Wp, Bw, m, Swi, cw, cf, deltaP, G, Gp = sp.symbols(
+    'N Np Bo Boi Rp Rsi Rs Bg Bgi We Wp Bw m Swi cw cf deltaP G Gp'
 )
 
 SYMBOLS = {
-    'N': N, 'Np': Np, 'Bt': Bt, 'Bti': Bti, 'Rp': Rp, 'Rsi': Rsi,
+    'N': N, 'Np': Np, 'Bo': Bo, 'Boi': Boi, 'Rp': Rp, 'Rsi': Rsi, 'Rs': Rs,
     'Bg': Bg, 'Bgi': Bgi, 'We': We, 'Wp': Wp, 'Bw': Bw, 'm': m,
     'Swi': Swi, 'cw': cw, 'cf': cf, 'deltaP': deltaP,
     'G': G, 'Gp': Gp,

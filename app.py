@@ -35,7 +35,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-FLOAT_VARS = {'N', 'Np', 'Bt', 'Bti', 'Rp', 'Rsi', 'Bg', 'Bgi',
+FLOAT_VARS = {'N', 'Np', 'Bo', 'Boi', 'Rp', 'Rsi', 'Rs', 'Bg', 'Bgi',
               'We', 'Wp', 'Bw', 'm', 'Swi', 'cw', 'cf', 'deltaP',
               'G', 'Gp'}
 
@@ -154,8 +154,10 @@ if trigger_calc:
     if fluid_type != 'gas' and is_unsaturated:
         if 'Rsi' in known_values:
             known_values['Rp'] = known_values['Rsi']
+            known_values['Rs'] = known_values['Rsi']
         elif 'Rp' in known_values:
             known_values['Rsi'] = known_values['Rp']
+            known_values['Rs'] = known_values['Rp']
         else:
             st.error(
                 "For an unsaturated reservoir, Rsi (and therefore Rp) "

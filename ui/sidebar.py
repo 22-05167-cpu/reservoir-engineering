@@ -58,7 +58,7 @@ def render_sidebar() -> dict:
 
     forced_zeros = []
     if not is_gas and is_unsaturated:
-        forced_zeros.extend(['m', 'Bg', 'Bgi', 'Rsi'])
+        forced_zeros.extend(['m', 'Bg', 'Bgi', 'Rsi', 'Rs'])
     if not water_drive_active:
         forced_zeros.extend(['We', 'Wp', 'Bw'])
     if not is_gas and not gas_cap_active:
