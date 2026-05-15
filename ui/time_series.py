@@ -111,34 +111,58 @@ def _render_volumetric_undersaturated_plot(eo_values, efw_values, f_values):
     if len(x_clean) < 2:
         st.info("Not enough valid data points for F vs Eo+Efw regression.")
         return
-    slope = np.sum(x_clean * y_clean) / np.sum(x_clean ** 2)
-    n_estimated = slope
-    y_pred = slope * x_clean
-    ss_res = np.sum((y_clean - y_pred) ** 2)
-    ss_tot = np.sum((y_clean - np.mean(y_clean)) ** 2)
-    r_squared = 1 - ss_res / ss_tot if ss_tot > 0 else 0.0
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=x_clean, y=y_clean, mode='markers', name='Data Points',
-        marker=dict(color='#1f77b4', size=8),
-    ))
-    trend_x = np.linspace(0, x_clean.max(), 100)
-    trend_y = slope * trend_x
-    fig.add_trace(go.Scatter(
-        x=trend_x, y=trend_y, mode='lines',
-        name=f'Trendline (R\u00b2 = {r_squared:.4f})',
-        line=dict(color='#ff7f0e', width=2, dash='dash'),
-    ))
-    fig.update_layout(
-        title="Havlena-Odeh: F vs. Eo + Efw (Volumetric Undersaturated)",
-        xaxis_title="Total Expansion, Eo + Efw (bbl/STB)",
-        yaxis_title="Total Withdrawal, F (bbl)",
-        height=500,
-    )
-    st.plotly_chart(fig, use_container_width=True)
-    st.markdown(f"""
+    with st.expander("Advanced Regression Settings", expanded=True):
+        force_origin = st.checkbox(
+            "Force line through origin (0,0)",
+            value=True,
+            key="origin_vol_unsat",
+        )
+        ignore_points = st.slider(
+            "Ignore early data points",
+            0, len(x_clean) - 2, 0,
+            key="ignore_vol_unsat",
+        )
+
+        x_fit = x_clean[ignore_points:]
+        y_fit = y_clean[ignore_points:]
+        if len(x_fit) < 2:
+            st.warning("Too few data points remaining after ignoring early points.")
+            return
+
+        if force_origin:
+            slope = np.sum(x_fit * y_fit) / np.sum(x_fit ** 2)
+            intercept = 0.0
+        else:
+            slope, intercept = np.polyfit(x_fit, y_fit, 1)
+
+        n_estimated = slope
+        y_pred = slope * x_clean + intercept
+        ss_res = np.sum((y_clean - y_pred) ** 2)
+        ss_tot = np.sum((y_clean - np.mean(y_clean)) ** 2)
+        r_squared = 1 - ss_res / ss_tot if ss_tot > 0 else 0.0
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=x_clean, y=y_clean, mode='markers', name='Data Points',
+            marker=dict(color='#1f77b4', size=8),
+        ))
+        trend_x = np.linspace(0, x_clean.max(), 100)
+        trend_y = slope * trend_x + intercept
+        fig.add_trace(go.Scatter(
+            x=trend_x, y=trend_y, mode='lines',
+            name=f'Trendline (R\u00b2 = {r_squared:.4f})',
+            line=dict(color='#ff7f0e', width=2, dash='dash'),
+        ))
+        fig.update_layout(
+            title="Havlena-Odeh: F vs. Eo + Efw (Volumetric Undersaturated)",
+            xaxis_title="Total Expansion, Eo + Efw (bbl/STB)",
+            yaxis_title="Total Withdrawal, F (bbl)",
+            height=500,
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        intercept_info = f", Intercept = {intercept:,.2f}" if not force_origin else ""
+        st.markdown(f"""
 **Volumetric Undersaturated Interpretation:**
-- **N = {n_estimated:,.2f} STB** (Slope)
+- **N = {n_estimated:,.2f} STB** (Slope{intercept_info})
 """)
 
 
@@ -154,34 +178,58 @@ def _render_volumetric_saturated_plot(eo_values, f_values):
     if len(x_clean) < 2:
         st.info("Not enough valid data points for F vs Eo regression.")
         return
-    slope = np.sum(x_clean * y_clean) / np.sum(x_clean ** 2)
-    n_estimated = slope
-    y_pred = slope * x_clean
-    ss_res = np.sum((y_clean - y_pred) ** 2)
-    ss_tot = np.sum((y_clean - np.mean(y_clean)) ** 2)
-    r_squared = 1 - ss_res / ss_tot if ss_tot > 0 else 0.0
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=x_clean, y=y_clean, mode='markers', name='Data Points',
-        marker=dict(color='#1f77b4', size=8),
-    ))
-    trend_x = np.linspace(0, x_clean.max(), 100)
-    trend_y = slope * trend_x
-    fig.add_trace(go.Scatter(
-        x=trend_x, y=trend_y, mode='lines',
-        name=f'Trendline (R\u00b2 = {r_squared:.4f})',
-        line=dict(color='#ff7f0e', width=2, dash='dash'),
-    ))
-    fig.update_layout(
-        title="Havlena-Odeh: F vs. Eo (Volumetric Saturated)",
-        xaxis_title="Oil Expansion, Eo (bbl/STB)",
-        yaxis_title="Total Withdrawal, F (bbl)",
-        height=500,
-    )
-    st.plotly_chart(fig, use_container_width=True)
-    st.markdown(f"""
+    with st.expander("Advanced Regression Settings", expanded=True):
+        force_origin = st.checkbox(
+            "Force line through origin (0,0)",
+            value=True,
+            key="origin_vol_sat",
+        )
+        ignore_points = st.slider(
+            "Ignore early data points",
+            0, len(x_clean) - 2, 0,
+            key="ignore_vol_sat",
+        )
+
+        x_fit = x_clean[ignore_points:]
+        y_fit = y_clean[ignore_points:]
+        if len(x_fit) < 2:
+            st.warning("Too few data points remaining after ignoring early points.")
+            return
+
+        if force_origin:
+            slope = np.sum(x_fit * y_fit) / np.sum(x_fit ** 2)
+            intercept = 0.0
+        else:
+            slope, intercept = np.polyfit(x_fit, y_fit, 1)
+
+        n_estimated = slope
+        y_pred = slope * x_clean + intercept
+        ss_res = np.sum((y_clean - y_pred) ** 2)
+        ss_tot = np.sum((y_clean - np.mean(y_clean)) ** 2)
+        r_squared = 1 - ss_res / ss_tot if ss_tot > 0 else 0.0
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=x_clean, y=y_clean, mode='markers', name='Data Points',
+            marker=dict(color='#1f77b4', size=8),
+        ))
+        trend_x = np.linspace(0, x_clean.max(), 100)
+        trend_y = slope * trend_x + intercept
+        fig.add_trace(go.Scatter(
+            x=trend_x, y=trend_y, mode='lines',
+            name=f'Trendline (R\u00b2 = {r_squared:.4f})',
+            line=dict(color='#ff7f0e', width=2, dash='dash'),
+        ))
+        fig.update_layout(
+            title="Havlena-Odeh: F vs. Eo (Volumetric Saturated)",
+            xaxis_title="Oil Expansion, Eo (bbl/STB)",
+            yaxis_title="Total Withdrawal, F (bbl)",
+            height=500,
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        intercept_info = f", Intercept = {intercept:,.2f}" if not force_origin else ""
+        st.markdown(f"""
 **Volumetric Saturated Interpretation:**
-- **N = {n_estimated:,.2f} STB** (Slope)
+- **N = {n_estimated:,.2f} STB** (Slope{intercept_info})
 """)
 
 
