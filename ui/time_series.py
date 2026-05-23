@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from mbe_solver import compute_mbe_derived_terms
+from models.water_influx import compute_water_influx_series
 
 
 def _render_gas_cap_plot(eo_values, egc_values, f_values):
@@ -19,7 +20,11 @@ def _render_gas_cap_plot(eo_values, egc_values, f_values):
     if len(x_clean) < 2:
         st.info("Not enough valid data points for F/Eo vs Egc/Eo regression.")
         return
-    slope, intercept = np.polyfit(x_clean, y_clean, 1)
+    try:
+        slope, intercept = np.polyfit(x_clean, y_clean, 1)
+    except (np.linalg.LinAlgError, ValueError):
+        st.info("Gas cap drive regression failed.")
+        return
     n_estimated = intercept
     m_estimated = slope / intercept if abs(intercept) > 1e-12 else 0.0
     y_pred = slope * x_clean + intercept
@@ -74,7 +79,11 @@ def _render_water_drive_plot(eo_values, delta_p_values, f_values):
     if len(x_clean) < 2:
         st.info("Not enough valid data points for F/Eo vs \u0394P/Eo regression.")
         return
-    slope, intercept = np.polyfit(x_clean, y_clean, 1)
+    try:
+        slope, intercept = np.polyfit(x_clean, y_clean, 1)
+    except (np.linalg.LinAlgError, ValueError):
+        st.info("Water drive regression failed — data may be degenerate.")
+        return
     n_estimated = intercept
     k_estimated = slope
     y_pred = slope * x_clean + intercept
@@ -116,6 +125,91 @@ def _render_water_drive_plot(eo_values, delta_p_values, f_values):
 """)
 
 
+def _render_water_drive_model_plot(eo_values, we_values, f_values):
+    """Havlena-Odeh diagnostic: F/Eo vs We/Eo.
+
+    A 45-degree straight line confirms the water influx model is correct.
+    """
+    eo_array = np.array(eo_values)
+    we_array = np.array(we_values)
+    f_array = np.array(f_values)
+    valid_mask = np.abs(eo_array) > 1e-12
+    x_values = np.divide(we_array[valid_mask], eo_array[valid_mask])
+    y_values = np.divide(f_array[valid_mask], eo_array[valid_mask])
+    finite_mask = np.isfinite(x_values) & np.isfinite(y_values)
+    x_clean = x_values[finite_mask]
+    y_clean = y_values[finite_mask]
+    if len(x_clean) < 2:
+        st.info("Not enough valid data points for F/Eo vs We/Eo regression.")
+        return
+    try:
+        slope, intercept = np.polyfit(x_clean, y_clean, 1)
+    except (np.linalg.LinAlgError, ValueError):
+        st.info("Water influx diagnostic regression failed — data may be degenerate.")
+        return
+
+    n_estimated = intercept
+    y_pred = slope * x_clean + intercept
+    ss_res = np.sum((y_clean - y_pred) ** 2)
+    ss_tot = np.sum((y_clean - np.mean(y_clean)) ** 2)
+    r_squared = 1 - ss_res / ss_tot if ss_tot > 0 else 0.0
+    dev_45 = abs(slope - 1.0)
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=x_clean,
+            y=y_clean,
+            mode="markers",
+            name="Data Points",
+            marker=dict(color="#1f77b4", size=8),
+        )
+    )
+    trend_x = np.linspace(x_clean.min(), x_clean.max(), 100)
+    trend_y = slope * trend_x + intercept
+    fig.add_trace(
+        go.Scatter(
+            x=trend_x,
+            y=trend_y,
+            mode="lines",
+            name=f"Best fit (slope={slope:.3f})",
+            line=dict(color="#ff7f0e", width=2, dash="dash"),
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=trend_x,
+            y=trend_x + intercept,
+            mode="lines",
+            name="45° ideal",
+            line=dict(color="#2ca02c", width=1, dash="dot"),
+        )
+    )
+    fig.update_layout(
+        title=f"Water Influx Diagnostic: F/Eo vs We/Eo (R²={r_squared:.4f})",
+        xaxis_title="We / Eo (STB)",
+        yaxis_title="F / Eo (STB)",
+        height=500,
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    if dev_45 < 0.1:
+        diag_msg = f"Model fits well. Slope= {slope:.3f} (close to 1.0)"
+    elif slope > 1.1:
+        diag_msg = f"Model underestimates (slope={slope:.3f} > 1). Try larger aquifer (increase ra)."
+    elif slope < 0.9:
+        diag_msg = f"Model overestimates (slope={slope:.3f} < 1). Try smaller aquifer (decrease ra)."
+    else:
+        diag_msg = f"Slope= {slope:.3f} (moderate deviation from 1.0)."
+
+    st.markdown(f"""
+**Water Influx Diagnostic:**
+- **N = {n_estimated:,.2f} STB** (Intercept)
+- **Slope = {slope:.4f}** (ideal = 1.0)
+- **Diagnosis:** {diag_msg}
+""")
+
+
 def _render_volumetric_undersaturated_plot(eo_values, efw_values, f_values):
     eo_array = np.array(eo_values)
     efw_array = np.array(efw_values)
@@ -154,7 +248,11 @@ def _render_volumetric_undersaturated_plot(eo_values, efw_values, f_values):
             slope = np.sum(x_fit * y_fit) / np.sum(x_fit**2)
             intercept = 0.0
         else:
-            slope, intercept = np.polyfit(x_fit, y_fit, 1)
+            try:
+                slope, intercept = np.polyfit(x_fit, y_fit, 1)
+            except (np.linalg.LinAlgError, ValueError):
+                st.info("Undersaturated regression failed — data may be degenerate.")
+                return
 
         n_estimated = slope
         y_pred = slope * x_clean + intercept
@@ -232,7 +330,11 @@ def _render_volumetric_saturated_plot(eo_values, f_values):
             slope = np.sum(x_fit * y_fit) / np.sum(x_fit**2)
             intercept = 0.0
         else:
-            slope, intercept = np.polyfit(x_fit, y_fit, 1)
+            try:
+                slope, intercept = np.polyfit(x_fit, y_fit, 1)
+            except (np.linalg.LinAlgError, ValueError):
+                st.info("Saturated regression failed — data may be degenerate.")
+                return
 
         n_estimated = slope
         y_pred = slope * x_clean + intercept
@@ -281,9 +383,44 @@ def render_time_series(
     fluid_type="oil",
     is_unsaturated=False,
     all_vals=None,
+    water_influx_model="none",
+    water_influx_params=None,
 ):
     if df is None or len(df) <= 1:
         return
+
+    st.markdown("---")
+    with st.expander("📈  Time-Series Analysis", expanded=False):
+        st.markdown("""
+        **What these plots mean:**
+        - **F vs Et** — straight line through origin means your m and We assumptions are correct
+        - **F curves upward** → missing energy source (larger m or We needed)
+        - **F curves downward** → overestimating the energy
+        - **F/Eo vs We/Eo** — 45° line means the water influx model fits
+        """)
+        st.markdown("---")
+        _render_ts_content(
+            df,
+            col_map,
+            forced_zeros,
+            fluid_type,
+            is_unsaturated,
+            all_vals,
+            water_influx_model,
+            water_influx_params,
+        )
+
+
+def _render_ts_content(
+    df,
+    col_map,
+    forced_zeros,
+    fluid_type,
+    is_unsaturated,
+    all_vals,
+    water_influx_model="none",
+    water_influx_params=None,
+):
 
     def get_val(var_name, row_series):
         if var_name in col_map and col_map[var_name] in df.columns:
@@ -291,9 +428,6 @@ def render_time_series(
             if pd.notna(val):
                 return float(val)
         return float(all_vals.get(var_name, 0.0) or 0.0)
-
-    st.markdown("---")
-    st.header("Time-Series Analysis")
 
     delta_pressure_column = col_map.get("deltaP")
     cumulative_oil_column = col_map.get("Np")
@@ -382,6 +516,40 @@ def render_time_series(
         egc_values.append(Egc)
         delta_p_values.append(row_values["deltaP"])
 
+    # ── Water influx model We computation ──────────────────────────────
+    we_values = None
+    if water_influx_model not in (None, "none") and water_influx_params:
+        p_col = None
+        for c in df.columns:
+            if c.lower() in ["pressure", "p"]:
+                p_col = c
+                break
+        if p_col is not None:
+            p_hist_vals = pd.to_numeric(df[p_col], errors="coerce").dropna().tolist()
+            if len(p_hist_vals) >= 2:
+                pi_hist = p_hist_vals[0]
+                wf_params = dict(water_influx_params)
+                wf_params["pi"] = pi_hist
+
+                time_col = None
+                for c in df.columns:
+                    if c.lower() in ["time", "t", "days", "date"]:
+                        time_col = c
+                        break
+                if time_col is not None:
+                    t_hist = (
+                        pd.to_numeric(df[time_col], errors="coerce").dropna().tolist()
+                    )
+                else:
+                    t_hist = list(range(len(p_hist_vals)))
+
+                we_series = compute_water_influx_series(
+                    water_influx_model, wf_params, p_hist_vals, t_history=t_hist
+                )
+                if len(we_series) < len(df):
+                    we_series = we_series + [0.0] * (len(df) - len(we_series))
+                we_values = we_series
+
     havlena_chart = go.Figure()
     havlena_chart.add_trace(
         go.Scatter(
@@ -465,6 +633,11 @@ or different drive mechanisms may be active.
             if water_drive_active:
                 st.markdown("---")
                 st.subheader("Water Drive: Parameterized Havlena-Odeh Plot")
-                _render_water_drive_plot(
-                    eo_values, delta_p_values, total_withdrawal_values
-                )
+                if we_values is not None and any(w != 0 for w in we_values):
+                    _render_water_drive_model_plot(
+                        eo_values, we_values, total_withdrawal_values
+                    )
+                else:
+                    _render_water_drive_plot(
+                        eo_values, delta_p_values, total_withdrawal_values
+                    )

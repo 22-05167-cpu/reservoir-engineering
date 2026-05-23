@@ -19,6 +19,34 @@ st.set_page_config(
 FLOAT_VARS = set(var_info.keys())
 
 
+def _build_water_influx_params(model_type):
+    if model_type == "pot_aquifer":
+        return {
+            "re": st.session_state.get("wf_pa_re", 5000),
+            "ra": st.session_state.get("wf_pa_ra", 50000),
+            "h": st.session_state.get("wf_pa_h", 100),
+            "phi": st.session_state.get("wf_pa_phi", 0.15),
+            "theta": st.session_state.get("wf_pa_theta", 180),
+            "cw_plus_cf": st.session_state.get("wf_pa_ct", 1e-5),
+        }
+    if model_type == "schilthuis":
+        return {
+            "C": st.session_state.get("wf_sch_c", 100),
+        }
+    if model_type == "veh":
+        return {
+            "re": st.session_state.get("wf_veh_re", 5000),
+            "ra": st.session_state.get("wf_veh_ra", 50000),
+            "h": st.session_state.get("wf_veh_h", 100),
+            "phi": st.session_state.get("wf_veh_phi", 0.15),
+            "k": st.session_state.get("wf_veh_k", 200),
+            "mu_w": st.session_state.get("wf_veh_mu", 0.5),
+            "ct": st.session_state.get("wf_veh_ct", 1e-5),
+            "theta": st.session_state.get("wf_veh_theta", 180),
+        }
+    return {}
+
+
 def _hydrate_from_query_params():
     params = st.query_params.to_dict()
     if not params:
@@ -192,6 +220,9 @@ if st.session_state.get("calculated", False):
     _df = rd.get("df")
     _col_map = rd.get("col_map", {})
 
+    wf_model = st.session_state.get("sidebar_water_influx_model", "none")
+    wf_params = _build_water_influx_params(wf_model)
+
     render_results(
         rd["result"],
         rd["target_var"],
@@ -211,6 +242,8 @@ if st.session_state.get("calculated", False):
             rd["fluid_type"],
             rd["is_unsaturated"],
             rd["all_vals"],
+            water_influx_model=wf_model,
+            water_influx_params=wf_params,
         )
 
     if rd["fluid_type"] == "oil" and not rd["is_unsaturated"]:

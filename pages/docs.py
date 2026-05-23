@@ -849,3 +849,70 @@ After clicking **Run Prediction**, you get:
 4. Run the prediction
 5. Use the plots and insights to understand how the reservoir will deplete
 """)
+
+
+# ── 8. Water Influx Models ──────────────────────────────────────────────────
+
+st.header("8. Water Influx Models (Ch 11 / Ch 3)")
+
+st.markdown("""
+When you enable **Water Drive Active** in the sidebar, a new **Water Influx Model**
+dropdown appears below the checkbox. This lets you choose how the water influx We
+is calculated at each time step in the time-series analysis.
+
+| Model | Source | Behavior |
+|---|---|---|
+| None (default) | Ch 11 | Simple `We = K·ΔP`. The existing F/Eo vs ΔP/Eo plot is used |
+| Pot-Aquifer Geometry | Ch 11 Eq 11-45 | `We = (cw+cf) × Wi × f × ΔP` — uses actual aquifer geometry |
+| Schilthuis Steady-State | Ch 11 Eq 11-48 | `We = C × ∫(pi-p)dt` — time-dependent, trapezoidal integration |
+| Van Everdingen-Hurst | Ch 11 Eq 11-50 | `We = B × ΣΔp × WeD(tD, rD)` — superposition with lookup table |
+
+### Pot-Aquifer Geometry
+Enter aquifer dimensions (radii, thickness, porosity, encroachment angle) plus
+total compressibility. Water influx is proportional to the pressure drop, just
+like the simple model, but the constant is derived from physical geometry.
+
+### Schilthuis Steady-State
+Enter the water influx constant C (bbl/day/psi). Water influx accumulates over
+time as `C × ∫(pi-p)dt`. Requires both a pressure column and a time column in
+the time-series table.
+
+### Van Everdingen-Hurst Unsteady-State
+The most rigorous model. Accepts aquifer properties (k, φ, μ, ct, radii, angle).
+Computes dimensionless time tD, looks up WeD from built-in tables for the
+appropriate rD, and applies superposition to account for pressure history effects.
+
+### Diagnostic Plot
+When an active model produces non-zero We values, the **Water Drive** section
+in the time-series analysis switches from `F/Eo vs ΔP/Eo` to
+**`F/Eo vs We/Eo`**.
+
+A 45° straight line confirms the model is correct:
+- Slope > 1 → aquifer is too small (increase ra)
+- Slope < 1 → aquifer is too large (decrease ra)
+- R² close to 1 → good match
+
+This replicates the Havlena-Odeh aquifer fitting methodology from the textbook
+(Ch 11 Fig 11-25, Ch 3 Fig 3.9).
+""")
+
+
+# ── 9. Average Reservoir Pressure ───────────────────────────────────────────
+
+st.header("9. Average Reservoir Pressure (Ch 11 Case 6)")
+
+st.markdown("""
+When you know N and m (from volumetric estimates) but have no pressure data,
+the `estimate_average_pressure()` function solves the MBE backwards:
+
+1. Guess an average pressure p
+2. Compute `F(p)` from production data and PVT at p
+3. Compute `RHS(p) = N[Eo + m·Eg]`
+4. Bisect until `F(p) = RHS(p)`
+
+The result is the average reservoir pressure consistent with known production
+and original oil/gas volumes. Access this programmatically via:
+
+```python
+from models.pressure_estimate import estimate_average_pressure
+```""")

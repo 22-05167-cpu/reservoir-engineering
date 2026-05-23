@@ -16,3 +16,9 @@ from .relative_permeability import (
     RelpermInterpolator,
 )
 from .tracy import tracy_predict
+from .water_influx import (
+    compute_water_influx,
+    compute_water_influx_series,
+    WATER_INFLUX_MODELS,
+)
+from .pressure_estimate import estimate_average_pressure
