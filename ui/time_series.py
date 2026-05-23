@@ -844,11 +844,60 @@ def _render_gas_ts_content(
     # ── 5. tpss calculator ────────────────────────────────────────────
     st.markdown("---")
     st.subheader("Gas Stabilization Time (tpss)")
-    with st.expander("Calculate minimum shut-in time", expanded=False):
-        col_a, col_b = st.columns(2)
-        with col_a:
-            phi_in = st.number_input(
-                "Porosity φ", min_value=0.0, value=0.14, step=0.01, key="tpss_phi"
+    col_a, col_b = st.columns(2)
+    with col_a:
+        phi_in = st.number_input(
+            "Porosity φ", min_value=0.0, value=0.14, step=0.01, key="tpss_phi"
+        )
+        mu_in = st.number_input(
+            "Gas viscosity μg (cp)",
+            min_value=0.0,
+            value=0.016,
+            step=0.001,
+            key="tpss_mu",
+        )
+        ct_in = st.number_input(
+            "Total compressibility ct (psi⁻¹)",
+            min_value=0.0,
+            value=8e-4,
+            step=1e-4,
+            format="%.2e",
+            key="tpss_ct",
+        )
+    with col_b:
+        k_in = st.number_input(
+            "Permeability k (md)", min_value=0.0, value=0.1, step=0.1, key="tpss_k"
+        )
+        acres_in = st.number_input(
+            "Drainage area (acres)",
+            min_value=0.0,
+            value=40.0,
+            step=10.0,
+            key="tpss_acres",
+        )
+        xf_in = st.number_input(
+            "Fracture half-length xf (ft, 0=unfractured)",
+            min_value=0,
+            value=0,
+            step=50,
+            key="tpss_xf",
+        )
+
+    if st.button("Calculate tpss", key="tpss_btn"):
+        t_rad = stabilization_time_radial(
+            phi_in, mu_in, ct_in, A_acres=acres_in, k=k_in
+        )
+        st.metric(
+            "Radial tpss",
+            f"{t_rad:.0f} days ({t_rad / 30.44:.1f} months)" if t_rad > 0 else "N/A",
+        )
+        if xf_in > 0:
+            t_frac = stabilization_time_fractured(phi_in, mu_in, ct_in, xf_in, k_in)
+            st.metric(
+                "Fractured tpss",
+                f"{t_frac:.0f} days ({t_frac / 30.44:.1f} months)"
+                if t_frac > 0
+                else "N/A",
             )
             mu_in = st.number_input(
                 "Gas viscosity μg (cp)",

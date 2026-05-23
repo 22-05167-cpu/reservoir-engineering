@@ -30,7 +30,13 @@ class RelpermInterpolator:
     """
 
     def __init__(self, Sg_values=None, krg_kro_values=None):
-        if Sg_values is not None and krg_kro_values is not None:
+        has_data = (
+            Sg_values is not None
+            and krg_kro_values is not None
+            and len(Sg_values) > 0
+            and len(krg_kro_values) > 0
+        )
+        if has_data:
             self._table_Sg = np.array(Sg_values, dtype=float)
             self._table_krg_kro = np.array(krg_kro_values, dtype=float)
             idx = np.argsort(self._table_Sg)
