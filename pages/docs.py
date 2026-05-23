@@ -773,5 +773,79 @@ st.markdown("""
    above the table. Only enter what changes with each time step.
 
 5. **For gas reservoirs, switch the fluid type first.** The interface
-   completely changes — fewer variables, different target options.
+    completely changes — fewer variables, different target options.
+""")
+
+
+# ── 7. Performance Prediction ────────────────────────────────────────────────
+
+st.header("7. Performance Prediction (Tracy's Method)")
+
+st.markdown("""
+The **prediction** page takes the answer from the MBE solver and tells you what
+happens next — how much oil you'll produce, how the gas-oil ratio will change,
+and how the reservoir saturations will evolve as pressure drops.
+
+Navigate to **prediction** in the sidebar.
+
+### What It Does
+
+Tracy's method (Chapter 12) predicts reservoir performance for a
+**solution-gas-drive reservoir** by iterating through pressure steps below the
+bubble point. At each step it:
+
+1. Computes Tracy's PVT functions Φₒ and Φg from your fluid data
+2. Guesses the producing gas-oil ratio (GOR)
+3. Iterates until the GOR from the equation matches the GOR from the
+   relative permeability at the computed gas saturation
+4. Moves to the next lower pressure, carrying forward the results
+
+### Required Inputs
+
+| Input | Description |
+|---|---|
+| N | Initial oil-in-place — get this from the MBE solver first |
+| Swi | Initial water saturation (decimal) |
+| pi | Initial reservoir pressure (psi) |
+| pb | Bubble-point pressure (psi) |
+| Abandonment pressure | Lowest pressure to predict down to |
+| μo | Oil viscosity at reservoir conditions (cp) |
+| μg | Gas viscosity at reservoir conditions (cp) |
+
+**PVT Table** — Pressure vs Bo, Bg, Rs. Edit the grid with your own data or
+use the pre-loaded Example 12-4 values from the textbook.
+
+**Relative Permeability Table** — Sg vs krg/kro. Two modes:
+
+- **Table mode:** Enter pairs of gas saturation and krg/kro. Use lab data or
+  field-calculated values.
+- **Exponential mode:** Fit `krg/kro = a × exp(b × Sg)`. Useful when you only
+  have the correlation coefficients.
+
+### Outputs
+
+After clicking **Run Prediction**, you get:
+
+- **Summary metrics:** Ultimate recovery, recovery factor, total gas produced,
+  pressure range
+- **Prediction table:** Np, Gp, GOR, Rp, So, Sg, krg/kro at each pressure step
+- **Six performance curves:**
+  1. Np vs Pressure — cumulative oil production declines
+  2. GOR vs Pressure — gas-oil ratio rises as gas evolves
+  3. Cumulative Gp vs Pressure — total gas produced
+  4. So/Sg vs Pressure — oil saturation drops, gas saturation grows
+  5. Rp vs Pressure — cumulative GOR trend
+  6. krg/kro vs Sg — relative permeability ratio on log scale
+
+- **Drive Mechanism Insights:** Automatic analysis — gas mobility warnings,
+  recovery factor classification, and secondary gas cap detection
+- **CSV Download:** Export all prediction data for reports
+
+### Workflow
+
+1. Use the **app** page to find N (initial oil-in-place)
+2. Switch to the **prediction** page
+3. Enter N and the PVT/relperm data
+4. Run the prediction
+5. Use the plots and insights to understand how the reservoir will deplete
 """)
