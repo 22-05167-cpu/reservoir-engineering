@@ -1,12 +1,7 @@
-VENV = venv/bin
-
-.PHONY: run test clean
+.PHONY: run clean
 
 run:
-	$(VENV)/streamlit run app.py
-
-test:
-	$(VENV)/pytest test_cases.py -v
+	streamlit run app.py
 
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
