@@ -55,7 +55,9 @@ def render_sidebar():
 
     if is_gas:
         gas_cap_active = False
-        expansion_active = False
+        expansion_active = st.sidebar.checkbox(
+            "Rock & Water Expansion Active?", value=False, key="sidebar_expansion"
+        )
     else:
         gas_cap_active = st.sidebar.checkbox(
             "Gas Cap Active?", value=False, key="sidebar_gas_cap"
@@ -72,7 +74,7 @@ def render_sidebar():
         forced_zeros.update(["We", "Wp", "Bw"])
     if not is_gas and not gas_cap_active:
         forced_zeros.update(["m", "Bgi"])
-    if not is_gas and not expansion_active:
+    if not expansion_active:
         forced_zeros.update(["cw", "cf", "Swi"])
         if target_var != "deltaP":
             forced_zeros.add("deltaP")

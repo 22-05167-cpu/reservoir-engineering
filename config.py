@@ -120,7 +120,7 @@ OIL_VARS = [
     "cf",
     "deltaP",
 ]
-GAS_VARS = ["G", "Gp", "Bg", "Bgi", "We", "Wp", "Bw"]
+GAS_VARS = ["G", "Gp", "Bg", "Bgi", "We", "Wp", "Bw", "deltaP", "Swi", "cw", "cf"]
 
 N, Np, Bo, Boi, Rp, Rsi, Rs, Bg, Bgi, We, Wp, Bw, m, Swi, cw, cf, deltaP, G, Gp = (
     sp.symbols("N Np Bo Boi Rp Rsi Rs Bg Bgi We Wp Bw m Swi cw cf deltaP G Gp")

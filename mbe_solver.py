@@ -6,7 +6,28 @@ that can calculate any missing variable.
 
 import sympy as sp
 import numpy as np
-from config import SYMBOLS, N, Np, Bo, Boi, Rp, Rsi, Rs, Bg, Bgi, We, Wp, Bw, m, Swi, cw, cf, deltaP, G, Gp
+from config import (
+    SYMBOLS,
+    N,
+    Np,
+    Bo,
+    Boi,
+    Rp,
+    Rsi,
+    Rs,
+    Bg,
+    Bgi,
+    We,
+    Wp,
+    Bw,
+    m,
+    Swi,
+    cw,
+    cf,
+    deltaP,
+    G,
+    Gp,
+)
 from config import OIL_VARS, GAS_VARS
 
 numerator = Np * (Bo + (Rp - Rs) * Bg) - (We - Wp * Bw)
@@ -15,24 +36,30 @@ expansion_term = Boi * (1 + m) * ((Swi * cw + cf) / (1 - Swi)) * deltaP
 denominator = base_denominator + expansion_term
 
 MBE_IMPLICIT = N * denominator - numerator
-GAS_MBE_IMPLICIT = G * (Bg - Bgi) - Gp * Bg + (We - Wp * Bw)
+gas_expansion_term = Bgi * ((Swi * cw + cf) / (1 - Swi)) * deltaP
+GAS_MBE_IMPLICIT = G * (Bg - Bgi) + G * gas_expansion_term - Gp * Bg + (We - Wp * Bw)
 
 
 def _error_response(message):
-    return {'success': False, 'result': None, 'error_message': message, 'all_values': {}}
+    return {
+        "success": False,
+        "result": None,
+        "error_message": message,
+        "all_values": {},
+    }
 
 
 def _get_target_symbol_and_vars(target_var, fluid_type):
     target_symbol = SYMBOLS.get(target_var)
     if target_symbol is None:
         return None, None, f"Unknown target variable: {target_var}"
-    relevant_vars = GAS_VARS if fluid_type == 'gas' else OIL_VARS
+    relevant_vars = GAS_VARS if fluid_type == "gas" else OIL_VARS
     return target_symbol, relevant_vars, None
 
 
 def _build_substitutions(known_values, forced_zeros):
     substitutions = {}
-    for var_name in (forced_zeros or []):
+    for var_name in forced_zeros or []:
         sym = SYMBOLS.get(var_name)
         if sym is not None:
             substitutions[sym] = 0.0
@@ -97,9 +124,9 @@ def _solve_algebraically(expr, target_symbol):
     for sol in solutions:
         if sol is None:
             continue
-        if hasattr(sol, 'is_real') and sol.is_real:
+        if hasattr(sol, "is_real") and sol.is_real:
             return float(sol)
-        if not hasattr(sol, 'evalf'):
+        if not hasattr(sol, "evalf"):
             continue
         val = complex(sol.evalf())
         if abs(val.imag) < 1e-10 and not (np.isnan(val.real) or np.isinf(val.real)):
@@ -125,7 +152,7 @@ def _solve_numerically(expr, target_symbol):
 
 
 def _assemble_result(target_var, solved_value, substitutions, fluid_type):
-    relevant_vars = GAS_VARS if fluid_type == 'gas' else OIL_VARS
+    relevant_vars = GAS_VARS if fluid_type == "gas" else OIL_VARS
     all_values = {}
     for name in relevant_vars:
         sym = SYMBOLS[name]
@@ -136,10 +163,12 @@ def _assemble_result(target_var, solved_value, substitutions, fluid_type):
     return all_values
 
 
-def solve_mbe(target_var, known_values, forced_zeros=None, fluid_type='oil'):
-    is_gas = (fluid_type == 'gas')
+def solve_mbe(target_var, known_values, forced_zeros=None, fluid_type="oil"):
+    is_gas = fluid_type == "gas"
 
-    target_symbol, relevant_vars, err = _get_target_symbol_and_vars(target_var, fluid_type)
+    target_symbol, relevant_vars, err = _get_target_symbol_and_vars(
+        target_var, fluid_type
+    )
     if err:
         return _error_response(err)
 
@@ -148,7 +177,9 @@ def solve_mbe(target_var, known_values, forced_zeros=None, fluid_type='oil'):
 
     missing = _get_missing_variables(substitutions, target_var, relevant_vars)
     if missing:
-        return _error_response(f"Missing known values for variables: {', '.join(missing)}")
+        return _error_response(
+            f"Missing known values for variables: {', '.join(missing)}"
+        )
 
     if _has_swi_division_by_zero(substitutions, is_gas):
         return _error_response(
@@ -172,51 +203,51 @@ def solve_mbe(target_var, known_values, forced_zeros=None, fluid_type='oil'):
     all_values = _assemble_result(target_var, result, substitutions, fluid_type)
 
     return {
-        'success': True,
-        'result': result,
-        'error_message': None,
-        'all_values': all_values,
+        "success": True,
+        "result": result,
+        "error_message": None,
+        "all_values": all_values,
     }
 
 
-def compute_mbe_derived_terms(values, fluid_type='oil'):
-    is_gas = (fluid_type == 'gas')
+def compute_mbe_derived_terms(values, fluid_type="oil"):
+    is_gas = fluid_type == "gas"
 
     if is_gas:
-        G_val = values.get('G', 0)
-        Bg_val = values.get('Bg', 0)
-        Bgi_val = values.get('Bgi', 0)
-        We_val = values.get('We', 0)
-        Wp_val = values.get('Wp', 0)
-        Bw_val = values.get('Bw', 0)
+        G_val = values.get("G", 0)
+        Bg_val = values.get("Bg", 0)
+        Bgi_val = values.get("Bgi", 0)
+        We_val = values.get("We", 0)
+        Wp_val = values.get("Wp", 0)
+        Bw_val = values.get("Bw", 0)
 
         net_water_influx = We_val - Wp_val * Bw_val
         gas_expansion = G_val * (Bg_val - Bgi_val)
 
         return {
-            'gas_expansion': gas_expansion,
-            'net_water_influx': net_water_influx,
-            'gas_expansion_energy': abs(gas_expansion),
-            'water_energy': abs(net_water_influx),
+            "gas_expansion": gas_expansion,
+            "net_water_influx": net_water_influx,
+            "gas_expansion_energy": abs(gas_expansion),
+            "water_energy": abs(net_water_influx),
         }
 
-    N_val = values.get('N', 0)
-    Np_val = values.get('Np', 0)
-    Bo_val = values.get('Bo', 0)
-    Boi_val = values.get('Boi', 0)
-    Rp_val = values.get('Rp', 0)
-    Rsi_val = values.get('Rsi', 0)
-    Rs_val = values.get('Rs', 0)
-    Bg_val = values.get('Bg', 0)
-    Bgi_val = values.get('Bgi', 0)
-    We_val = values.get('We', 0)
-    Wp_val = values.get('Wp', 0)
-    Bw_val = values.get('Bw', 0)
-    m_val = values.get('m', 0)
-    Swi_val = values.get('Swi', 0)
-    cw_val = values.get('cw', 0)
-    cf_val = values.get('cf', 0)
-    deltaP_val = values.get('deltaP', 0)
+    N_val = values.get("N", 0)
+    Np_val = values.get("Np", 0)
+    Bo_val = values.get("Bo", 0)
+    Boi_val = values.get("Boi", 0)
+    Rp_val = values.get("Rp", 0)
+    Rsi_val = values.get("Rsi", 0)
+    Rs_val = values.get("Rs", 0)
+    Bg_val = values.get("Bg", 0)
+    Bgi_val = values.get("Bgi", 0)
+    We_val = values.get("We", 0)
+    Wp_val = values.get("Wp", 0)
+    Bw_val = values.get("Bw", 0)
+    m_val = values.get("m", 0)
+    Swi_val = values.get("Swi", 0)
+    cw_val = values.get("cw", 0)
+    cf_val = values.get("cf", 0)
+    deltaP_val = values.get("deltaP", 0)
 
     oil_shrinkage = (Bo_val - Boi_val) + (Rsi_val - Rs_val) * Bg_val
 
@@ -229,7 +260,8 @@ def compute_mbe_derived_terms(values, fluid_type='oil'):
         rock_water_expansion = 0.0
     else:
         rock_water_expansion = (
-            Boi_val * (1.0 + m_val)
+            Boi_val
+            * (1.0 + m_val)
             * ((Swi_val * cw_val + cf_val) / (1.0 - Swi_val))
             * deltaP_val
         )
@@ -248,28 +280,28 @@ def compute_mbe_derived_terms(values, fluid_type='oil'):
     Et = oil_shrinkage + gas_cap_expansion + rock_water_expansion
 
     return {
-        'oil_shrinkage': oil_shrinkage,
-        'gas_cap_expansion': gas_cap_expansion,
-        'rock_water_expansion': rock_water_expansion,
-        'net_water_influx': net_water_influx,
-        'oil_shrinkage_energy': oil_shrinkage_energy,
-        'gas_cap_energy': gas_cap_energy,
-        'rock_water_energy': rock_water_energy,
-        'water_energy': water_energy,
-        'numerator': numerator_val,
-        'denominator': denominator_val,
-        'F': F,
-        'Et': Et,
+        "oil_shrinkage": oil_shrinkage,
+        "gas_cap_expansion": gas_cap_expansion,
+        "rock_water_expansion": rock_water_expansion,
+        "net_water_influx": net_water_influx,
+        "oil_shrinkage_energy": oil_shrinkage_energy,
+        "gas_cap_energy": gas_cap_energy,
+        "rock_water_energy": rock_water_energy,
+        "water_energy": water_energy,
+        "numerator": numerator_val,
+        "denominator": denominator_val,
+        "F": F,
+        "Et": Et,
     }
 
 
-def compute_drive_indices(all_values, fluid_type='oil'):
+def compute_drive_indices(all_values, fluid_type="oil"):
     terms = compute_mbe_derived_terms(all_values, fluid_type)
-    is_gas = (fluid_type == 'gas')
+    is_gas = fluid_type == "gas"
 
     if is_gas:
         labels = ["Gas Expansion", "Net Water Influx"]
-        raw_values = [terms['gas_expansion_energy'], terms['water_energy']]
+        raw_values = [terms["gas_expansion_energy"], terms["water_energy"]]
     else:
         labels = [
             "Oil Shrinkage / Solution Gas",
@@ -278,10 +310,10 @@ def compute_drive_indices(all_values, fluid_type='oil'):
             "Net Water Influx",
         ]
         raw_values = [
-            terms['oil_shrinkage_energy'],
-            terms['gas_cap_energy'],
-            terms['rock_water_energy'],
-            terms['water_energy'],
+            terms["oil_shrinkage_energy"],
+            terms["gas_cap_energy"],
+            terms["rock_water_energy"],
+            terms["water_energy"],
         ]
 
     total = sum(raw_values)
@@ -290,4 +322,4 @@ def compute_drive_indices(all_values, fluid_type='oil'):
     else:
         percentages = [0.0] * len(raw_values)
 
-    return {'labels': labels, 'values': percentages, 'raw': raw_values}
+    return {"labels": labels, "values": percentages, "raw": raw_values}
